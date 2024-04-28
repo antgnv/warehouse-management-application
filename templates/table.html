@@ -11,6 +11,7 @@
         </thead>
         <tbody id="product-table-body">
             {% for product in products %}
+            <!-- Модальное окно для добавления товара на склад -->
             <div class="modal fade" id="addToInventoryModalLabel-{{ product.id }}" tabindex="-1"
                 aria-labelledby="addToInventoryModalLabel-{{ product.id }}" aria-hidden="true">
                 <div class="modal-dialog">
@@ -24,7 +25,7 @@
                         <form hx-post="{{ url_for('add_to_inventory') }}" hx-target="#table-container"
                             hx-swap="innerHTML">
                             {{ add_to_inventory_form.csrf_token }}
-                            <input type="hidden" name="product_id" id="product-id" value="{{ product.id }}">
+                            <input type="hidden" name="product_id" value="{{ product.id }}">
                             <div class="modal-body">
                                 <div class="form-group">
                                     <label for="location">Выберите локацию</label>
@@ -32,9 +33,78 @@
                                 </div>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
                                 <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">Добавить товар на
                                     склад</button>
+                            </div>
+                        </form>
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+            <!-- Модальное окно для удаления товара со склада -->
+            <div class="modal fade" id="deleteFromInventoryModal-{{ product.id }}" tabindex="-1"
+                aria-labelledby="deleteFromInventoryModalLabel-{{ product.id }}" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="deleteFromInventoryModalLabel-{{ product.id }}">Удалить товар
+                                <b>{{
+                                    product.name }}</b> со
+                                склада
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        {% with delete_from_inventory_form = delete_from_inventory_form(product_id=product.id) %}
+                        <form hx-post="{{ url_for('delete_from_inventory') }}" hx-target="#table-container"
+                            hx-swap="innerHTML">
+                            {{delete_from_inventory_form.csrf_token }}
+                            <input type="hidden" name="product_id" id="product-id" value="{{ product.id }}">
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label for="location">Выберите локацию</label>
+                                    {{delete_from_inventory_form.location_id(class="form-control")}}
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                <button type="submit" class="btn btn-danger" data-bs-dismiss="modal">Удалить товар со
+                                    склада</button>
+                            </div>
+                        </form>
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+            <!-- Модальное окно для изменения количества товара -->
+            <div class="modal fade" id="changeQuantityModal-{{ product.id }}" tabindex="-1"
+                aria-labelledby="changeQuantityModalLabel-{{ product.id }}" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="changeQuantityModalLabel-{{ product.id }}">Изменить количество
+                                товара <b>{{ product.id }}</b></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        {% with change_quantity_form = change_quantity_form(product_id=product.id) %}
+                        <form hx-post="{{ url_for('change_quantity') }}" hx-target="#table-container"
+                            hx-swap="innerHTML">
+                            {{ change_quantity_form.csrf_token }}
+                            <input type="hidden" name="product_id" value="{{ product.id }}">
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label for="location">Выберите локацию</label>
+                                    {{ change_quantity_form.location_id(class="form-control") }}
+                                </div>
+                                <div class="form-group">
+                                    {{ change_quantity_form.quantity.label() }}
+                                    {{ change_quantity_form.quantity(class="form-control") }}
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                                <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">Изменить
+                                    количество товаров</button>
                             </div>
                         </form>
                         {% endwith %}
@@ -68,8 +138,7 @@
                     если ни одного склада не создано -->
                     {% if locations and product.inventories|list|length < locations|list|length %} <button
                         class="btn btn-primary add-to-inventory-btn m-1" data-bs-toggle="modal"
-                        data-bs-target="#addToInventoryModalLabel-{{ product.id }}" data-product-id="{{ product.id }}"
-                        onclick="setProductId(this)">Добавить на склад</button>
+                        data-bs-target="#addToInventoryModalLabel-{{ product.id }}">Добавить на склад</button>
                         {% else %}
                         <button class="btn btn-primary m-1" disabled>Добавить на склад</button>
                         {% endif %}
@@ -78,8 +147,7 @@
                     если товар не добавлен ни к одному складу -->
                         {% if product.inventories|list|length > 0 %}
                         <button class="btn btn-success change-quantity-btn m-1" data-bs-toggle="modal"
-                            data-bs-target="#changeQuantityModal" data-product-id="{{ product.id }}"
-                            onclick="setProductIdForChangeQuantity(this)">Изменить количество</button>
+                            data-bs-target="#changeQuantityModal-{{ product.id }}">Изменить количество</button>
                         {% else %}
                         <button class="btn btn-success m-1" disabled>Изменить количество</button>
                         {% endif %}
@@ -88,8 +156,7 @@
                     если товар не добавлен ни к одному складу -->
                         {% if product.inventories|list|length > 0 %}
                         <button class="btn btn-danger delete-from-inventory-btn m-1" data-bs-toggle="modal"
-                            data-bs-target="#deleteFromInventoryModal" data-product-id="{{ product.id }}"
-                            onclick="setProductIdForDelete(this)">Удалить со склада</button>
+                            data-bs-target="#deleteFromInventoryModal-{{ product.id }}">Удалить со склада</button>
                         {% else %}
                         <button class="btn btn-danger m-1" disabled>Удалить со склада</button>
                         {% endif %}

@@ -48,10 +48,7 @@ class AddToInventoryForm(FlaskForm):
         get_label='name',
         validators=[DataRequired()],
         query_factory=lambda product_id: Location.query.filter(
-            ~Location.inventories.any(
-                Inventory.product_id == product_id)
-        ),
-    )
+            ~Location.inventories.any(Inventory.product_id == product_id)),)
 
     def __init__(self, product_id, *args, **kwargs):
         super(AddToInventoryForm, self).__init__(*args, **kwargs)
@@ -63,13 +60,15 @@ class AddToInventoryForm(FlaskForm):
 class DeleteFromInventoryForm(FlaskForm):
     location_id = QuerySelectField(
         get_label='name',
-        validators=[
-            DataRequired()])
-    submit = SubmitField('Удалить товар со склада')
+        validators=[DataRequired()],
+        query_factory=lambda product_id: Location.query.filter(
+            Location.inventories.any(Inventory.product_id == product_id)))
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, product_id, *args, **kwargs):
         super(DeleteFromInventoryForm, self).__init__(*args, **kwargs)
-        self.location_id.query = Location.query
+        self.product_id = product_id
+        self.location_id.query = self.location_id.query_factory(
+            self.product_id)
 
 
 class ChangeQuantityForm(FlaskForm):
@@ -78,21 +77,23 @@ class ChangeQuantityForm(FlaskForm):
                                                     message='Количество товара не может быть отрицательным')])
     location_id = QuerySelectField(
         get_label='name',
-        validators=[
-            DataRequired()])
-    submit = SubmitField('Изменить количество товара')
+        validators=[DataRequired()],
+        query_factory=lambda product_id: Location.query.filter(
+            Location.inventories.any(Inventory.product_id == product_id)))
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, product_id, *args, **kwargs):
         super(ChangeQuantityForm, self).__init__(*args, **kwargs)
-        self.location_id.query = Location.query
+        self.product_id = product_id
+        self.location_id.query = self.location_id.query_factory(
+            self.product_id)
 
 
 @app.route('/')
 def warehouse():
     return render_template('warehouse.html', products=Product.query.all(), locations=Location.query.all(),
                            add_product_form=AddProductForm(), add_location_form=AddLocationForm(),
-                           add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm(),
-                           change_quantity_form=ChangeQuantityForm())
+                           add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm,
+                           change_quantity_form=ChangeQuantityForm)
 
 
 @app.route('/add_product', methods=['POST'])
@@ -108,8 +109,8 @@ def add_product():
         db.session.commit()
         return render_template('table.html', products=Product.query.all(), locations=Location.query.all(),
                                add_product_form=AddProductForm(), add_location_form=AddLocationForm(),
-                               add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm(),
-                               change_quantity_form=ChangeQuantityForm())
+                               add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm,
+                               change_quantity_form=ChangeQuantityForm)
 
 
 @app.route('/add_location', methods=['POST'])
@@ -123,31 +124,31 @@ def add_location():
         db.session.commit()
         return render_template('table.html', products=Product.query.all(), locations=Location.query.all(),
                                add_product_form=AddProductForm(), add_location_form=AddLocationForm(),
-                               add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm(),
-                               change_quantity_form=ChangeQuantityForm())
+                               add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm,
+                               change_quantity_form=ChangeQuantityForm)
 
 
 @app.route('/add_to_inventory', methods=['POST'])
 def add_to_inventory():
     product_id = request.form.get('product_id')
-    add_to_inventory_form = AddToInventoryForm(product_id=product_id)
-    if add_to_inventory_form.validate_on_submit():
+    form = AddToInventoryForm(product_id=product_id)
+    if form.validate_on_submit():
         inventory = Inventory(
             product_id=product_id,
-            location_id=add_to_inventory_form.location_id.data.id,
+            location_id=form.location_id.data.id,
         )
         db.session.add(inventory)
         db.session.commit()
         return render_template('table.html', products=Product.query.all(), locations=Location.query.all(),
                                add_product_form=AddProductForm(), add_location_form=AddLocationForm(),
-                               add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm(),
-                               change_quantity_form=ChangeQuantityForm())
+                               add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm,
+                               change_quantity_form=ChangeQuantityForm)
 
 
 @app.route('/delete_from_inventory', methods=['POST'])
 def delete_from_inventory():
     product_id = request.form.get('product_id')
-    form = DeleteFromInventoryForm(request.form)
+    form = DeleteFromInventoryForm(product_id=product_id)
     if form.validate_on_submit():
         inventory = Inventory.query.filter_by(
             product_id=product_id, location_id=form.location_id.data.id).first()
@@ -156,14 +157,14 @@ def delete_from_inventory():
             db.session.commit()
             return render_template('table.html', products=Product.query.all(), locations=Location.query.all(),
                                    add_product_form=AddProductForm(), add_location_form=AddLocationForm(),
-                                   add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm(),
-                                   change_quantity_form=ChangeQuantityForm())
+                                   add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm,
+                                   change_quantity_form=ChangeQuantityForm)
 
 
 @app.route('/change_quantity', methods=['POST'])
 def change_quantity():
     product_id = request.form.get('product_id')
-    form = ChangeQuantityForm(request.form)
+    form = ChangeQuantityForm(product_id=product_id)
     if form.validate_on_submit():
         inventory = Inventory.query.filter_by(
             product_id=product_id, location_id=form.location_id.data.id).first()
@@ -172,8 +173,8 @@ def change_quantity():
             db.session.commit()
             return render_template('table.html', products=Product.query.all(), locations=Location.query.all(),
                                    add_product_form=AddProductForm(), add_location_form=AddLocationForm(),
-                                   add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm(),
-                                   change_quantity_form=ChangeQuantityForm())
+                                   add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm,
+                                   change_quantity_form=ChangeQuantityForm)
 
 
 if __name__ == '__main__':
