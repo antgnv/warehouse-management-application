@@ -1,0 +1,71 @@
+<div id="table-container">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Название</th>
+                <th>Описание</th>
+                <th>Цена</th>
+                <th>Количество</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody id="product-table-body">
+            {% for product in products %}
+            <tr>
+                <td>{{ product.name }}</td>
+                <td>{{ product.description }}</td>
+                <td>{{ product.price }}</td>
+                <td>
+                    {% if product.inventories|list|length > 0 %}
+                        {% for location in locations %}
+                            {% for inventory in product.inventories %}
+                                {% if inventory.location_id == location.id %}
+                                    {% if inventory.quantity == 0 %}
+                                        {{ location.name }} — нет в наличии<br>
+                                    {% else %}
+                                        {{ location.name }} — {{ inventory.quantity }} шт.<br>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    {% else %}
+                        Товара нет на складах
+                    {% endif %}
+                </td>
+                
+                <td>
+                    <!-- Кнопка «Добавить на склад» не отображается,
+                    если ни одного склада не создано -->
+                    {% if locations %}
+                    <button class="btn btn-primary add-to-inventory-btn" data-bs-toggle="modal"
+                        data-bs-target="#addToInventoryModal" data-product-id="{{ product.id }}"
+                        onclick="setProductId(this)">Добавить на склад</button>
+                    {% else %}
+                    <button class="btn btn-primary" disabled>Добавить на склад</button>
+                    {% endif %}
+
+                    <!-- Кнопка «Удалить со склада» не отображается,
+                    если товар не добавлен ни к одному складу -->
+                    {% if product.inventories|list|length > 0 %}
+                    <button class="btn btn-danger delete-from-inventory-btn" data-bs-toggle="modal"
+                        data-bs-target="#deleteFromInventoryModal" data-product-id="{{ product.id }}"
+                        onclick="setProductIdForDelete(this)">Удалить со склада</button>
+                    {% else %}
+                    <button class="btn btn-danger" disabled>Удалить со склада</button>
+                    {% endif %}
+
+                    <!-- Кнопка «Изменить количество»,
+                    если товар не добавлен ни к одному складу -->
+                    {% if product.inventories|list|length > 0 %}
+                    <button class="btn btn-success change-quantity-btn" data-bs-toggle="modal"
+                        data-bs-target="#changeQuantityModal" data-product-id="{{ product.id }}"
+                        onclick="setProductIdForChangeQuantity(this)">Изменить количество</button>
+                    {% else %}
+                    <button class="btn btn-success" disabled>Изменить количество</button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

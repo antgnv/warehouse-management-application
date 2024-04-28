@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% block title %}Склад{% endblock title %}
+
+{% block content %}
+<div class="container">
+    <h2>Склад</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">Добавить товар</button>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLocationModal">Добавить локацию</button>
+    {% include 'table.html' %}
+</div>
+
+<!-- Модальное окно для добавления товара -->
+<div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModal" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modal-title">Добавить товар</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form hx-post="{{ url_for('add_product') }}" hx-target="#table-container" hx-swap="innerHTML">
+                {{ add_product_form.csrf_token }}
+                <div class="modal-body">
+                    <div class="form-group">
+                        {{ add_product_form.name.label() }}
+                        {{ add_product_form.name(class="form-control") }}
+                    </div>
+                    <div class="form-group">
+                        {{ add_product_form.description.label() }}
+                        {{ add_product_form.description(class="form-control") }}
+                    </div>
+                    <div class="form-group">
+                        {{ add_product_form.price.label() }}
+                        {{ add_product_form.price(class="form-control") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    {{ add_product_form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для добавления локации -->
+<div class="modal fade" id="addLocationModal" tabindex="-1" aria-labelledby="addLocationModal" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modal-title">Добавить локацию</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form hx-post="{{ url_for('add_location') }}" hx-target="#table-container" hx-swap="innerHTML">
+                {{ add_location_form.csrf_token }}
+                <div class="modal-body">
+                    <div class="form-group">
+                        {{ add_location_form.name.label() }}
+                        {{ add_location_form.name(class="form-control") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    {{ add_location_form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для добавления товара на склад -->
+<div class="modal fade" id="addToInventoryModal" tabindex="-1" aria-labelledby="addToInventoryModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addToInventoryModalLabel">Добавить товар <b id="product-name"></b> на склад
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form hx-post="{{ url_for('add_to_inventory') }}" hx-target="#table-container" hx-swap="innerHTML">
+                {{ add_to_inventory_form.csrf_token }}
+                <input type="hidden" name="product_id" id="product-id" value="">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="location">Выберите локацию</label>
+                        {{ add_to_inventory_form.location_id(class="form-control")}}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    {{ add_to_inventory_form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    function setProductId(button) {
+        const productId = button.getAttribute('data-product-id');
+        const productName = button.closest('tr').querySelector('td:nth-child(1)').textContent;
+        document.getElementById('product-id').value = productId;
+        document.getElementById('product-name').textContent = productName;
+    }
+</script>
+
+<!-- Модальное окно для удаления товара со склада -->
+<div class="modal fade" id="deleteFromInventoryModal" tabindex="-1" aria-labelledby="deleteFromInventoryModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteFromInventoryModalLabel">Удалить товар <b id="product-name"></b> со
+                    склада</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form hx-post="{{ url_for('delete_from_inventory') }}" hx-target="#table-container" hx-swap="innerHTML">
+                {{delete_from_inventory_form.csrf_token }}
+                <input type="hidden" name="product_id" id="product-id" value="">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="location">Выберите локацию</label>
+                        {{delete_from_inventory_form.location_id(class="form-control")}}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    {{ delete_from_inventory_form.submit(class="btn btn-danger") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    function setProductIdForDelete(button) {
+        const productId = button.getAttribute('data-product-id');
+        const productName = button.closest('tr').querySelector('td:nth-child(1)').textContent;
+        document.getElementById('product-name').textContent = productName;
+        document.querySelector('#deleteFromInventoryModal form input[name="product_id"]').value = productId;
+    }
+</script>
+
+<!-- Модальное окно для изменения количества товара -->
+<div class="modal fade" id="changeQuantityModal" tabindex="-1" aria-labelledby="changeQuantityModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changeQuantityModalLabel">Изменить количество товара <b
+                        id="product-name-change"></b></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form hx-post="{{ url_for('change_quantity') }}" hx-target="#table-container" hx-swap="innerHTML">
+                {{ change_quantity_form.csrf_token }}
+                <input type="hidden" name="product_id" id="product-id-change" value="">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="location">Выберите локацию</label>
+                        {{ change_quantity_form.location_id(class="form-control") }}
+                    </div>
+                    <div class="form-group">
+                        {{ change_quantity_form.quantity.label() }}
+                        {{ change_quantity_form.quantity(class="form-control") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    {{ change_quantity_form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    function setProductIdForChangeQuantity(button) {
+        const productId = button.getAttribute('data-product-id');
+        const productName = button.closest('tr').querySelector('td:nth-child(1)').textContent;
+        document.getElementById('product-name-change').textContent = productName;
+        document.querySelector('#changeQuantityModal form input[name="product_id"]').value = productId;
+    }
+</script>
+{% endblock content %}

@@ -1,9 +1,14 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, flash, redirect, render_template, request
+from forms import AddLocationForm, AddProductForm
 from flask_sqlalchemy import SQLAlchemy
+from flask_wtf import FlaskForm
+from wtforms import SubmitField, IntegerField
+from wtforms.validators import DataRequired, NumberRange
+from wtforms_sqlalchemy.fields import QuerySelectField
 
 app = Flask(__name__)
-app.debug = True
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:password@localhost/warehouse'
+app.config['SECRET_KEY'] = '\xa0\xf1\xf5x\xf7\x137MP\x1f&\xea\x99]\xf5\x12\xbe<X\x07\xa8gY\xe7\xd8\xa7U\xd0\t\xfd_$'
 
 db = SQLAlchemy(app)
 
@@ -26,8 +31,8 @@ class Inventory(db.Model):
         'product.id'), nullable=False)
     location_id = db.Column(db.Integer, db.ForeignKey(
         'location.id'), nullable=False)
-    quantity = db.Column(db.Integer, nullable=False)
-
+    quantity = db.Column(db.Integer, db.CheckConstraint(
+        'quantity >= 0'), default=0)
     product = db.relationship(
         'Product', backref=db.backref('inventories', lazy='dynamic'))
     location = db.relationship(
@@ -38,34 +43,121 @@ with app.app_context():
     db.create_all()
 
 
+class AddToInventoryForm(FlaskForm):
+    location_id = QuerySelectField(
+        get_label='name',
+        validators=[DataRequired()],
+        query_factory=lambda: Location.query.filter(
+            ~Location.inventories.any(
+                Inventory.product_id == request.form.get('product_id'))
+        )
+    )
+    submit = SubmitField('Добавить товар на склад')
+
+
+class DeleteFromInventoryForm(FlaskForm):
+    location_id = QuerySelectField(
+        get_label='name',
+        validators=[
+            DataRequired()])
+    submit = SubmitField('Удалить товар со склада')
+
+    def __init__(self, *args, **kwargs):
+        super(DeleteFromInventoryForm, self).__init__(*args, **kwargs)
+        self.location_id.query = Location.query
+
+
+class ChangeQuantityForm(FlaskForm):
+    quantity = IntegerField('Количество товара',
+                            validators=[NumberRange(min=0, max=None,
+                                                    message='Количество товара не может быть отрицательным')])
+    location_id = QuerySelectField(
+        get_label='name',
+        validators=[
+            DataRequired()])
+    submit = SubmitField('Изменить количество товара')
+
+    def __init__(self, *args, **kwargs):
+        super(ChangeQuantityForm, self).__init__(*args, **kwargs)
+        self.location_id.query = Location.query
+
+
 @app.route('/')
-def index():
-    products = Product.query.all()
-    return render_template('index.html', products=products)
+def warehouse():
+    return render_template('warehouse.html', products=Product.query.all(), locations=Location.query.all(),
+                           add_product_form=AddProductForm(), add_location_form=AddLocationForm(),
+                           add_to_inventory_form=AddToInventoryForm(), delete_from_inventory_form=DeleteFromInventoryForm(), change_quantity_form=ChangeQuantityForm())
 
 
 @app.route('/add_product', methods=['POST'])
 def add_product():
-    name = request.form.get('name')
-    description = request.form.get('description')
-    price = float(request.form.get('price'))
-
-    product = Product(name=name, description=description, price=price)
-    db.session.add(product)
-    db.session.commit()
-
-    return jsonify({'success': True})
+    form = AddProductForm()
+    if form.validate_on_submit():
+        product = Product(
+            name=form.name.data,
+            description=form.description.data,
+            price=form.price.data
+        )
+        db.session.add(product)
+        db.session.commit()
+        return render_template('table.html', products=Product.query.all(), locations=Location.query.all(),
+                               add_to_inventory_form=AddToInventoryForm(), delete_from_inventory_form=DeleteFromInventoryForm(), change_quantity_form=ChangeQuantityForm())
 
 
 @app.route('/add_location', methods=['POST'])
 def add_location():
-    name = request.form.get('name')
+    form = AddLocationForm()
+    if form.validate_on_submit():
+        location = Location(
+            name=form.name.data,
+        )
+        db.session.add(location)
+        db.session.commit()
+        return render_template('table.html', products=Product.query.all(), locations=Location.query.all(),
+                               add_to_inventory_form=AddToInventoryForm(), delete_from_inventory_form=DeleteFromInventoryForm(), change_quantity_form=ChangeQuantityForm())
 
-    location = Location(name=name)
-    db.session.add(location)
-    db.session.commit()
 
-    return jsonify({'success': True})
+@app.route('/add_to_inventory', methods=['POST'])
+def add_to_inventory():
+    form = AddToInventoryForm(request.form)
+    product_id = request.form.get('product_id')
+    if form.validate_on_submit():
+        inventory = Inventory(
+            product_id=product_id,
+            location_id=form.location_id.data.id,
+        )
+        db.session.add(inventory)
+        db.session.commit()
+        return render_template('table.html', products=Product.query.all(), locations=Location.query.all(),
+                               add_to_inventory_form=AddToInventoryForm(), delete_from_inventory_form=DeleteFromInventoryForm(), change_quantity_form=ChangeQuantityForm())
+
+
+@app.route('/delete_from_inventory', methods=['POST'])
+def delete_from_inventory():
+    product_id = request.form.get('product_id')
+    form = DeleteFromInventoryForm(request.form)
+    if form.validate_on_submit():
+        inventory = Inventory.query.filter_by(
+            product_id=product_id, location_id=form.location_id.data.id).first()
+        if inventory:
+            db.session.delete(inventory)
+            db.session.commit()
+            return render_template('table.html', products=Product.query.all(), locations=Location.query.all(),
+                                   add_to_inventory_form=AddToInventoryForm(), delete_from_inventory_form=DeleteFromInventoryForm(), change_quantity_form=ChangeQuantityForm())
+
+
+@app.route('/change_quantity', methods=['POST'])
+def change_quantity():
+    product_id = request.form.get('product_id')
+    form = ChangeQuantityForm(request.form)
+    if form.validate_on_submit():
+        inventory = Inventory.query.filter_by(
+            product_id=product_id, location_id=form.location_id.data.id).first()
+        if inventory:
+            inventory.quantity = int(form.quantity.data)
+            db.session.commit()
+        return render_template('table.html', products=Product.query.all(), locations=Location.query.all(),
+                               add_to_inventory_form=AddToInventoryForm(), delete_from_inventory_form=DeleteFromInventoryForm(), change_quantity_form=ChangeQuantityForm())
 
 
 if __name__ == '__main__':
