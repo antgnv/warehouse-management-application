@@ -18,7 +18,7 @@
                 <h5 class="modal-title" id="modal-title">Добавить товар</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form hx-post="{{ url_for('add_product') }}" hx-target="#table-container" hx-swap="innerHTML">
+            <form hx-post="{{ url_for('add_product') }}" hx-target="#table-container" hx-swap="outerHTML">
                 {{ add_product_form.csrf_token }}
                 <div class="modal-body">
                     <div class="form-group">
