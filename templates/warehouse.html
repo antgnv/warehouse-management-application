@@ -3,9 +3,10 @@
 
 {% block content %}
 <div class="container">
-    <h2>Склад</h2>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">Добавить товар</button>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLocationModal">Добавить локацию</button>
+    <h2 class="m-3 text-center">Склад</h2>
+    <button class="btn btn-primary m-1" data-bs-toggle="modal" data-bs-target="#addProductModal">Добавить товар</button>
+    <button class="btn btn-primary m-1" data-bs-toggle="modal" data-bs-target="#addLocationModal">Добавить
+        локацию</button>
     {% include 'table.html' %}
 </div>
 
@@ -68,32 +69,7 @@
 </div>
 
 <!-- Модальное окно для добавления товара на склад -->
-<div class="modal fade" id="addToInventoryModal" tabindex="-1" aria-labelledby="addToInventoryModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addToInventoryModalLabel">Добавить товар <b id="product-name"></b> на склад
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form hx-post="{{ url_for('add_to_inventory') }}" hx-target="#table-container" hx-swap="innerHTML">
-                {{ add_to_inventory_form.csrf_token }}
-                <input type="hidden" name="product_id" id="product-id" value="">
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="location">Выберите локацию</label>
-                        {{ add_to_inventory_form.location_id(class="form-control")}}
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-                    {{ add_to_inventory_form.submit(class="btn btn-primary") }}
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+
 <script>
     function setProductId(button) {
         const productId = button.getAttribute('data-product-id');

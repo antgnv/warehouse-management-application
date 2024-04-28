@@ -42,17 +42,15 @@ class Inventory(db.Model):
 with app.app_context():
     db.create_all()
 
-
 class AddToInventoryForm(FlaskForm):
     location_id = QuerySelectField(
         get_label='name',
         validators=[DataRequired()],
-        query_factory=lambda: Location.query.filter(
-            ~Location.inventories.any(
+        query_factory=lambda: Location.query.filter(                        
+            ~Location.inventories.any(                                      
                 Inventory.product_id == request.form.get('product_id'))
         )
     )
-    submit = SubmitField('Добавить товар на склад')
 
 
 class DeleteFromInventoryForm(FlaskForm):
