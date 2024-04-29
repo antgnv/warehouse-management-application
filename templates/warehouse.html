@@ -2,7 +2,7 @@
 {% block title %}Склад{% endblock title %}
 
 {% block content %}
-<div class="container">
+<div class="container" id="container">
     <h2 class="m-5 text-center">Управление складами</h2>
     <div class="mb-3 btn-group" role="group" aria-label="First group">
         <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">Добавить
@@ -91,7 +91,7 @@
                 <h5 class="modal-title" id="modal-title">Добавить локацию</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form hx-post="{{ url_for('add_location') }}" hx-target="#table-container" hx-swap="innerHTML">
+            <form hx-post="{{ url_for('add_location') }}" hx-target="#container" hx-swap="outerHTML">
                 {{ add_location_form.csrf_token }}
                 <div class="modal-body">
                     <div class="form-group">
