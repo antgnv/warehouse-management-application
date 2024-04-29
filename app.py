@@ -1,13 +1,14 @@
-from flask import Flask, flash, redirect, render_template, request
-from forms import AddLocationForm, AddProductForm
+from flask import Flask, render_template, request
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import func, desc
+from forms import AddLocationForm, AddProductForm
 from flask_wtf import FlaskForm
-from wtforms import SubmitField, IntegerField
+from wtforms import IntegerField
 from wtforms.validators import DataRequired, NumberRange
 from wtforms_sqlalchemy.fields import QuerySelectField
-
+from database_auth import database_username, database_password, database_host, database_name
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:password@localhost/warehouse'
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql://{database_username}:{database_password}@{database_host}/{database_name}'
 app.config['SECRET_KEY'] = '\xa0\xf1\xf5x\xf7\x137MP\x1f&\xea\x99]\xf5\x12\xbe<X\x07\xa8gY\xe7\xd8\xa7U\xd0\t\xfd_$'
 
 db = SQLAlchemy(app)
@@ -47,7 +48,7 @@ class AddToInventoryForm(FlaskForm):
     location_id = QuerySelectField(
         get_label='name',
         validators=[DataRequired()],
-        query_factory=lambda product_id: Location.query.filter(
+        query_factory=lambda product_id: Location.query.filter(                 # Фильтрация всех складов, к которым еще не привязан данный товар
             ~Location.inventories.any(Inventory.product_id == product_id)),)
 
     def __init__(self, product_id, *args, **kwargs):
@@ -61,7 +62,7 @@ class DeleteFromInventoryForm(FlaskForm):
     location_id = QuerySelectField(
         get_label='name',
         validators=[DataRequired()],
-        query_factory=lambda product_id: Location.query.filter(
+        query_factory=lambda product_id: Location.query.filter(                 # Фильтрация всех складов, к которым уже привязан данный товар
             Location.inventories.any(Inventory.product_id == product_id)))
 
     def __init__(self, product_id, *args, **kwargs):
@@ -73,12 +74,11 @@ class DeleteFromInventoryForm(FlaskForm):
 
 class ChangeQuantityForm(FlaskForm):
     quantity = IntegerField('Количество товара',
-                            validators=[NumberRange(min=0, max=None,
-                                                    message='Количество товара не может быть отрицательным')])
+                            validators=[NumberRange(min=0)])
     location_id = QuerySelectField(
         get_label='name',
         validators=[DataRequired()],
-        query_factory=lambda product_id: Location.query.filter(
+        query_factory=lambda product_id: Location.query.filter(                 # Фильтрация всех складов, к которым уже привязан данный товар
             Location.inventories.any(Inventory.product_id == product_id)))
 
     def __init__(self, product_id, *args, **kwargs):
@@ -88,12 +88,28 @@ class ChangeQuantityForm(FlaskForm):
             self.product_id)
 
 
+class FilterByLocation(FlaskForm):
+    location = QuerySelectField(
+        get_label='name', query_factory=lambda: Location.query)
+
+
+def get_context():
+    return {
+        'products': Product.query.all(),
+        'locations': Location.query.all(),
+        'add_product_form': AddProductForm(),
+        'add_location_form': AddLocationForm(),
+        'add_to_inventory_form': AddToInventoryForm,
+        'delete_from_inventory_form': DeleteFromInventoryForm,
+        'change_quantity_form': ChangeQuantityForm,
+        'filter_by_location': FilterByLocation(),
+    }
+
+
 @app.route('/')
 def warehouse():
-    return render_template('warehouse.html', products=Product.query.all(), locations=Location.query.all(),
-                           add_product_form=AddProductForm(), add_location_form=AddLocationForm(),
-                           add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm,
-                           change_quantity_form=ChangeQuantityForm)
+    context = get_context()
+    return render_template('warehouse.html', **context)
 
 
 @app.route('/add_product', methods=['POST'])
@@ -107,10 +123,8 @@ def add_product():
         )
         db.session.add(product)
         db.session.commit()
-        return render_template('table.html', products=Product.query.all(), locations=Location.query.all(),
-                               add_product_form=AddProductForm(), add_location_form=AddLocationForm(),
-                               add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm,
-                               change_quantity_form=ChangeQuantityForm)
+        context = get_context()
+        return render_template('table.html', **context)
 
 
 @app.route('/add_location', methods=['POST'])
@@ -122,10 +136,8 @@ def add_location():
         )
         db.session.add(location)
         db.session.commit()
-        return render_template('table.html', products=Product.query.all(), locations=Location.query.all(),
-                               add_product_form=AddProductForm(), add_location_form=AddLocationForm(),
-                               add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm,
-                               change_quantity_form=ChangeQuantityForm)
+        context = get_context()
+        return render_template('table.html', **context)
 
 
 @app.route('/add_to_inventory', methods=['POST'])
@@ -139,10 +151,8 @@ def add_to_inventory():
         )
         db.session.add(inventory)
         db.session.commit()
-        return render_template('table.html', products=Product.query.all(), locations=Location.query.all(),
-                               add_product_form=AddProductForm(), add_location_form=AddLocationForm(),
-                               add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm,
-                               change_quantity_form=ChangeQuantityForm)
+        context = get_context()
+        return render_template('table.html', **context)
 
 
 @app.route('/delete_from_inventory', methods=['POST'])
@@ -155,10 +165,8 @@ def delete_from_inventory():
         if inventory:
             db.session.delete(inventory)
             db.session.commit()
-            return render_template('table.html', products=Product.query.all(), locations=Location.query.all(),
-                                   add_product_form=AddProductForm(), add_location_form=AddLocationForm(),
-                                   add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm,
-                                   change_quantity_form=ChangeQuantityForm)
+            context = get_context()
+            return render_template('table.html', **context)
 
 
 @app.route('/change_quantity', methods=['POST'])
@@ -171,10 +179,43 @@ def change_quantity():
         if inventory:
             inventory.quantity = int(form.quantity.data)
             db.session.commit()
-            return render_template('table.html', products=Product.query.all(), locations=Location.query.all(),
-                                   add_product_form=AddProductForm(), add_location_form=AddLocationForm(),
-                                   add_to_inventory_form=AddToInventoryForm, delete_from_inventory_form=DeleteFromInventoryForm,
-                                   change_quantity_form=ChangeQuantityForm)
+            context = get_context()
+            return render_template('table.html', **context)
+
+
+@app.route('/search', methods=['POST'])
+def search_by_input():
+    context = get_context()
+    user_input = request.form.get('user_input')
+    user_input_search = Product.query.filter(Product.name.contains(user_input))
+    context['products'] = user_input_search
+    return render_template('table.html', **context)
+
+
+@app.route('/filter_by_location', methods=['POST'])
+def filter_by_location():
+    context = get_context()
+    location = int(request.form.get('location'))
+    sorting_by_location = Product.query.join(
+        Inventory).filter(Inventory.location_id == location)
+    context['products'] = sorting_by_location
+    return render_template('table.html', **context)
+
+
+@app.route('/sort_by_price_ascending')
+def sort_by_price_ascending():
+    context = get_context()
+    sorting_by_price = Product.query.order_by(Product.price.asc())
+    context['products'] = sorting_by_price
+    return render_template('table.html', **context)
+
+
+@app.route('/sort_by_price_descending')
+def sort_by_price_descending():
+    context = get_context()
+    sorting_by_price = Product.query.order_by(Product.price.desc())
+    context['products'] = sorting_by_price
+    return render_template('table.html', **context)
 
 
 if __name__ == '__main__':

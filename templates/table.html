@@ -83,7 +83,7 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title" id="changeQuantityModalLabel-{{ product.id }}">Изменить количество
-                                товара <b>{{ product.id }}</b></h5>
+                                товара <b>{{ product.name }}</b></h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         {% with change_quantity_form = change_quantity_form(product_id=product.id) %}
@@ -115,51 +115,54 @@
                 <td>{{ product.name }}</td>
                 <td>{{ product.description }}</td>
                 <td>{{ product.price }}</td>
-                <td>
-                    {% if product.inventories|list|length > 0 %}
-                    {% for location in locations %}
-                    {% for inventory in product.inventories %}
-                    {% if inventory.location_id == location.id %}
-                    {% if inventory.quantity == 0 %}
-                    {{ location.name }} — нет в наличии<br>
+                <td> 
+                    {% if product.inventories|list|length > 0 %}        
+                        {% for location in locations %}
+                            {% for inventory in product.inventories %}
+                                {% if inventory.location_id == location.id %}
+                                    {% if inventory.quantity == 0 %}
+                                        {{ location.name }} — нет в наличии<br>
+                                    {% else %}
+                                        {{ location.name }} — {{ inventory.quantity }} шт.<br>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
                     {% else %}
-                    {{ location.name }} — {{ inventory.quantity }} шт.<br>
-                    {% endif %}
-                    {% endif %}
-                    {% endfor %}
-                    {% endfor %}
-                    {% else %}
-                    Товара нет на складах
+                        Товара нет на складах
                     {% endif %}
                 </td>
 
                 <td>
+                    <div class="btn-group" role="group" aria-label="Basic example">
                     <!-- Кнопка «Добавить на склад» не отображается,
-                    если ни одного склада не создано -->
+                    если ни одного склада не создано, или если
+                    товар уже есть на всех созданных складах -->
                     {% if locations and product.inventories|list|length < locations|list|length %} <button
-                        class="btn btn-primary add-to-inventory-btn m-1" data-bs-toggle="modal"
-                        data-bs-target="#addToInventoryModalLabel-{{ product.id }}">Добавить на склад</button>
-                        {% else %}
-                        <button class="btn btn-primary m-1" disabled>Добавить на склад</button>
-                        {% endif %}
+                    class="btn btn-success" data-bs-toggle="modal"
+                    data-bs-target="#addToInventoryModalLabel-{{ product.id }}">Добавить на склад</button>
+                    {% else %}
+                    <button class="btn btn-success" disabled>Добавить на склад</button>
+                    {% endif %}
 
-                        <!-- Кнопка «Изменить количество» не отображается,
+                    <!-- Кнопка «Изменить количество» не отображается,
                     если товар не добавлен ни к одному складу -->
-                        {% if product.inventories|list|length > 0 %}
-                        <button class="btn btn-success change-quantity-btn m-1" data-bs-toggle="modal"
-                            data-bs-target="#changeQuantityModal-{{ product.id }}">Изменить количество</button>
-                        {% else %}
-                        <button class="btn btn-success m-1" disabled>Изменить количество</button>
-                        {% endif %}
+                    {% if product.inventories|list|length > 0 %}
+                    <button class="btn btn-warning" data-bs-toggle="modal"
+                        data-bs-target="#changeQuantityModal-{{ product.id }}">Изменить количество</button>
+                    {% else %}
+                    <button class="btn btn-warning" disabled>Изменить количество</button>
+                    {% endif %}
 
-                        <!-- Кнопка «Удалить со склада» не отображается,
+                    <!-- Кнопка «Удалить со склада» не отображается,
                     если товар не добавлен ни к одному складу -->
-                        {% if product.inventories|list|length > 0 %}
-                        <button class="btn btn-danger delete-from-inventory-btn m-1" data-bs-toggle="modal"
-                            data-bs-target="#deleteFromInventoryModal-{{ product.id }}">Удалить со склада</button>
-                        {% else %}
-                        <button class="btn btn-danger m-1" disabled>Удалить со склада</button>
-                        {% endif %}
+                    {% if product.inventories|list|length > 0 %}
+                    <button class="btn btn-danger" data-bs-toggle="modal"
+                        data-bs-target="#deleteFromInventoryModal-{{ product.id }}">Удалить со склада</button>
+                    {% else %}
+                    <button class="btn btn-danger" disabled>Удалить со склада</button>
+                    {% endif %}
+                    </div>
                 </td>
             </tr>
             {% endfor %}

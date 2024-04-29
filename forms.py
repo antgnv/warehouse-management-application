@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, FloatField, SubmitField, IntegerField
-from wtforms.validators import DataRequired, Length
+from wtforms import StringField, FloatField, SubmitField
+from wtforms.validators import DataRequired, Length, NumberRange
 
 
 class AddProductForm(FlaskForm):
@@ -9,8 +9,7 @@ class AddProductForm(FlaskForm):
     description = StringField('Описание',
                               validators=[DataRequired(), ])
     price = FloatField('Цена',
-                       validators=[DataRequired(), ])
-    submit = SubmitField('Добавить товар')
+                       validators=[DataRequired(), NumberRange(min=0,)])
 
 
 class AddLocationForm(FlaskForm):

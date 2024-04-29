@@ -3,14 +3,54 @@
 
 {% block content %}
 <div class="container">
-    <h2 class="m-3 text-center">Склад</h2>
-    <button class="btn btn-primary m-1" data-bs-toggle="modal" data-bs-target="#addProductModal">Добавить товар</button>
-    <button class="btn btn-primary m-1" data-bs-toggle="modal" data-bs-target="#addLocationModal">Добавить
-        локацию</button>
+    <h2 class="m-5 text-center">Управление складами</h2>
+    <div class="mb-3 btn-group" role="group" aria-label="First group">
+        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">Добавить
+            товар</button>
+        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addLocationModal">Добавить
+            локацию</button>
+    </div>
+
+    <div class="btn-toolbar justify-content-between" role="toolbar" aria-label="Toolbar with button groups">
+        <div class="btn-group" role="group">
+            
+            {% if locations|list|length > 0 %}
+            <button class="btn btn-outline-primary" data-bs-toggle="modal"
+                data-bs-target="#locationFilterModal">Фильтровать
+                по локациям</button>
+            {% else %}
+            <button class="btn btn-outline-primary" disabled>Фильтровать
+                по локациям</button>
+            {% endif %}
+
+            {% if products|list|length > 1 %}
+            <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown"
+                aria-expanded="false">
+                Сортировать
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" hx-get="{{ url_for('sort_by_price_ascending') }}"
+                        hx-target="#table-container">По цене ▲</a></li>
+                <li><a class="dropdown-item" hx-get="{{ url_for('sort_by_price_descending') }}"
+                        hx-target="#table-container">По цене ▼</a></li>
+            </ul>
+            {% else %}
+            <button class="btn btn-outline-primary dropdown-toggle" disabled>Сортировать</button>
+            {% endif %}
+        </div>
+        <form hx-post="{{ url_for('search_by_input') }}" hx-target="#table-container" hx-swap="innerHTML">
+            <div class="input-group">
+                <input type="text" class="form-control" name="user_input" id="user_input" placeholder="Название товара"
+                    aria-label="Название товара" aria-describedby="btnGroupAddon">
+                <button type="submit" class="btn btn-outline-primary">Поиск</button>
+            </div>
+        </form>
+    </div>
+
     {% include 'table.html' %}
 </div>
 
-<!-- Модальное окно для добавления товара -->
+<!-- Модальное окно для добавления нового товара -->
 <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModal" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -18,7 +58,7 @@
                 <h5 class="modal-title" id="modal-title">Добавить товар</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form hx-post="{{ url_for('add_product') }}" hx-target="#table-container" hx-swap="outerHTML">
+            <form hx-post="{{ url_for('add_product') }}" hx-target="#table-container" hx-swap="innerHTML">
                 {{ add_product_form.csrf_token }}
                 <div class="modal-body">
                     <div class="form-group">
@@ -36,14 +76,14 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    {{ add_product_form.submit(class="btn btn-primary") }}
+                    <button type="submit" class="btn btn-primary">Добавить товар</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Модальное окно для добавления локации -->
+<!-- Модальное окно для добавления новой локации -->
 <div class="modal fade" id="addLocationModal" tabindex="-1" aria-labelledby="addLocationModal" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -61,7 +101,31 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    {{ add_location_form.submit(class="btn btn-primary") }}
+                    <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">Добавить локацию</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- Модальное окно для фильтрации по локациям -->
+<div class="modal fade" id="locationFilterModal" tabindex="-1" aria-labelledby="locationFilterModal" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="locationFilterModal">Фильтровать товары по локациям</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form hx-post="{{ url_for('filter_by_location') }}" hx-target="#table-container" hx-swap="innerHTML">
+                {{filter_by_location.csrf_token }}
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="location">Выберите локацию</label>
+                        {{filter_by_location.location(class="form-control")}}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-danger" data-bs-dismiss="modal">Фильтровать</button>
                 </div>
             </form>
         </div>
