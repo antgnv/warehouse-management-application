@@ -1,5 +1,4 @@
 from warehouse import db
-from sqlalchemy.dialects.mysql import DECIMAL
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
