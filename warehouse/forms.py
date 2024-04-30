@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, IntegerField
 from wtforms.validators import DataRequired, NumberRange
 from wtforms_sqlalchemy.fields import QuerySelectField
-from models import Location, Inventory
+from warehouse.models import Location, Inventory
 
 class AddProductForm(FlaskForm):
     name = StringField('Название', validators=[DataRequired()])

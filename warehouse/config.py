@@ -1,4 +1,4 @@
-from database_auth import database_username, database_password, database_host, database_name
+from warehouse.database_auth import database_username, database_password, database_host, database_name
 
 import os
 

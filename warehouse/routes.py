@@ -1,14 +1,7 @@
-from flask import Flask, render_template, request
-from config import Config
-from models import db, Product, Location, Inventory
-from forms import AddProductForm, AddLocationForm, AddToInventoryForm, DeleteFromInventoryForm, ChangeQuantityForm, FilterByLocation
-
-app = Flask(__name__)
-app.config.from_object(Config)
-db.init_app(app)
-
-with app.app_context():
-    db.create_all()
+from flask import render_template, request
+from warehouse import app
+from warehouse.models import db, Product, Location, Inventory
+from warehouse.forms import AddProductForm, AddLocationForm, AddToInventoryForm, DeleteFromInventoryForm, ChangeQuantityForm, FilterByLocation
 
 def get_context():
     return {
@@ -22,10 +15,12 @@ def get_context():
         'filter_by_location': FilterByLocation(),
     }
 
+
 @app.route('/')
 def warehouse():
     context = get_context()
     return render_template('warehouse.html', **context)
+
 
 @app.route('/add_product', methods=['POST'])
 def add_product():
@@ -41,6 +36,7 @@ def add_product():
         context = get_context()
         return render_template('table.html', **context)
 
+
 @app.route('/add_location', methods=['POST'])
 def add_location():
     form = AddLocationForm()
@@ -52,6 +48,7 @@ def add_location():
         db.session.commit()
         context = get_context()
         return render_template('warehouse.html', **context)
+
 
 @app.route('/add_to_inventory', methods=['POST'])
 def add_to_inventory():
@@ -67,6 +64,7 @@ def add_to_inventory():
         context = get_context()
         return render_template('table.html', **context)
 
+
 @app.route('/delete_from_inventory', methods=['POST'])
 def delete_from_inventory():
     product_id = request.form.get('product_id')
@@ -79,6 +77,7 @@ def delete_from_inventory():
             db.session.commit()
             context = get_context()
             return render_template('table.html', **context)
+
 
 @app.route('/change_quantity', methods=['POST'])
 def change_quantity():
@@ -93,6 +92,7 @@ def change_quantity():
             context = get_context()
             return render_template('table.html', **context)
 
+
 @app.route('/search', methods=['POST'])
 def search_by_input():
     context = get_context()
@@ -100,6 +100,7 @@ def search_by_input():
     user_input_search = Product.query.filter(Product.name.contains(user_input))
     context['products'] = user_input_search
     return render_template('table.html', **context)
+
 
 @app.route('/filter_by_location', methods=['POST'])
 def filter_by_location():
@@ -110,6 +111,7 @@ def filter_by_location():
     context['products'] = sorting_by_location
     return render_template('table.html', **context)
 
+
 @app.route('/sort_by_price_ascending')
 def sort_by_price_ascending():
     context = get_context()
@@ -117,12 +119,10 @@ def sort_by_price_ascending():
     context['products'] = sorting_by_price
     return render_template('table.html', **context)
 
+
 @app.route('/sort_by_price_descending')
 def sort_by_price_descending():
     context = get_context()
     sorting_by_price = Product.query.order_by(Product.price.desc())
     context['products'] = sorting_by_price
     return render_template('table.html', **context)
-
-if __name__ == '__main__':
-    app.run(debug=True)
